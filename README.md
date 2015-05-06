@@ -1,2 +1,1 @@
-# assignment_3
-A simple matrix processing system that is able to construct matrices and perform matrix computations in the C programming language.
+In this assignment we will implement a simple matrix processing system that is able to construct matrices and perform matrix computations in the C programming language. The aim is to use a variety of parallel programming, algorithmic and code optimisation techniques to achieve peak performance.
