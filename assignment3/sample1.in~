@@ -1,0 +1,18 @@
+10 2
+SET a = identity
+SHOW a
+SET b = sequence 1 1
+SHOW b
+SET c = scalar#add a 1
+SHOW c
+SET d = scalar#add b 4
+SHOW d
+SET d = scalar#mul a 1
+SHOW d
+SET e = scalar#mul c 2
+SHOW e
+SET f = scalar#mul e 2
+SHOW f
+BYE
+
+

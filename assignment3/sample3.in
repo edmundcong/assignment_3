@@ -1,0 +1,21 @@
+SET a = identity
+SET b = random 1
+SET c = random 2
+SET d = uniform 1
+SET e = uniform 2
+SET f = sequence 1 1
+SET g = sequence 2 2
+SHOW a
+COMPUTE sum a
+SHOW b
+COMPUTE sum b
+SHOW c
+COMPUTE sum c
+SHOW d
+COMPUTE sum d
+SHOW e
+COMPUTE sum e
+SHOW f
+COMPUTE sum f
+SHOW g
+COMPUTE sum g

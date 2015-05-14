@@ -1,0 +1,35 @@
+SET a = identity
+SET b = uniform 1
+SET c = sequence 1 1
+SET d = matrix#pow a 0
+SHOW d
+SET d = matrix#pow a 1
+SHOW d
+SET d = matrix#pow a 2
+SHOW d
+SET d = matrix#pow a 3
+SHOW d
+SET d = matrix#pow a 4
+SHOW d
+SET e = matrix#pow b 0
+SHOW e
+SET e = matrix#pow b 1
+SHOW e
+SET e = matrix#pow b 2
+show b
+SHOW e
+SET e = matrix#pow b 3
+SHOW e
+SET e = matrix#pow b 4
+SHOW e
+SET f = matrix#pow c 0
+SHOW f
+SET f = matrix#pow c 1
+SHOW f
+SET f = matrix#pow c 2
+SHOW f
+SET f = matrix#pow c 3
+SHOW f
+SET f = matrix#pow c 4
+SHOW f
+

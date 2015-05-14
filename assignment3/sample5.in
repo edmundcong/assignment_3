@@ -1,0 +1,21 @@
+SET a = identity
+SET b = random 1
+SET c = random 2
+SET d = uniform 1
+SET e = uniform 2
+SET f = sequence 1 1
+SET g = sequence 2 2
+SHOW a
+COMPUTE minimum a
+SHOW b
+COMPUTE minimum b
+SHOW c
+COMPUTE minimum c
+SHOW d
+COMPUTE minimum d
+SHOW e
+COMPUTE minimum e
+SHOW f
+COMPUTE minimum f
+SHOW g
+COMPUTE minimum g

@@ -1,0 +1,7 @@
+set a = identity
+set b = scalar#add a 1
+set c = scalar#add a 2
+show c
+show b
+set d = matrix#mul c b
+show d

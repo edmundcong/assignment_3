@@ -1,0 +1,15 @@
+SET a = identity
+SET b = uniform 4
+SET c = sequence 1 1
+SHOW c
+SET d = matrix#add b c
+SHOW d
+SET e = matrix#mul c a
+SHOW e
+SET f = matrix#mul c d
+SHOW f
+SET g = matrix#pow c 0
+SHOW g
+SET h = matrix#pow c 4
+SHOW h
+BYE

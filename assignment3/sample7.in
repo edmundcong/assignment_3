@@ -1,0 +1,16 @@
+SET a = identity
+SET b = random 1
+SET c = uniform 1
+SET d = sequence 1 1
+SHOW a
+SET e = matrix#mul a a
+SHOW e
+SHOW b
+SET f = matrix#mul b b
+SHOW f
+SET g = matrix#mul a c
+SHOW g
+SHOW d
+SHOW c
+SET h = matrix#mul d c
+SHOW h

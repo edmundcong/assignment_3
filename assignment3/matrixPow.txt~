@@ -1,0 +1,24 @@
+
+typedef struct result_struct {
+    uint32_t *matrix;
+    int i;
+} result_struct;
+
+void matrix_pow_worker(result_struct result);
+
+
+void matrix_pow_worker(result_struct result){
+
+
+
+    int i = result.i;
+
+    int temp = result.matrix[i];
+
+    temp = temp*temp;
+    printf("temp is %d\n", temp);
+
+    result.matrix[i] = temp;
+
+    return (void)&result;
+}

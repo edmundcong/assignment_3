@@ -1,0 +1,21 @@
+SET a = identity
+SET b = random 1
+SET c = random 2
+SET d = uniform 1
+SET e = uniform 2
+SET f = sequence 1 1
+SET g = sequence 2 2
+SHOW a
+COMPUTE trace a
+SHOW b
+COMPUTE trace b
+SHOW c
+COMPUTE trace c
+SHOW d
+COMPUTE trace d
+SHOW e
+COMPUTE trace e
+SHOW f
+COMPUTE trace f
+SHOW g
+COMPUTE trace g
