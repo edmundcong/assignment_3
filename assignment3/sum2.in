@@ -1,0 +1,13 @@
+SET a = identity
+SET b = random 1
+SET c = uniform 1
+SET d = sequence 1 1
+SET e = scalar#add a 9887766554323198877665543231
+SHOW e
+SET f = scalar#add b 9887766554323198877665543231
+SHOW f
+SET g = scalar#add c 9887766554323198877665543231
+SHOW g
+SET h = scalar#add d 9887766554323198877665543231
+SHOW h
+

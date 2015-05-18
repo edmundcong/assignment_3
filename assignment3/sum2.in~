@@ -1,0 +1,12 @@
+SET a = identity
+SET b = random 1
+SET c = uniform 1
+SET d = sequence 1 1
+SET e = scalar#add a 2
+SHOW e
+SET f = scalar#add b 4
+SHOW f
+SET g = scalar#add c 6
+SHOW g
+SET h = scalar#add d 8
+SHOW h

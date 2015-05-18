@@ -1,9 +1,24 @@
 #ifndef MATRIX_H
 #define MATRIX_H
+#define IDX(x,y) ((y)*g_width+(x))
 
 #include <stdint.h>
 
+struct scalar_add_struct {
+    const uint32_t *matrix;
+    uint32_t *result;
+    size_t index;
+    ssize_t scalar;
+    ssize_t array_limit;
+};
 
+struct matrix_mul_struct {
+  const uint32_t *mat_a;
+  const uint32_t *mat_b;
+  uint32_t *result;
+  size_t index;
+  size_t chunk;
+};
 
 /* utility functions */
 
@@ -38,6 +53,7 @@ uint32_t *matrix_mul(const uint32_t *matrix_a, const uint32_t *matrix_b);
 
 /* worker functions */
 
+// static void *worker_matrix_mul(void *matrix);
 
 /* compute operations */
 
