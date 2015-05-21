@@ -1,23 +1,34 @@
 #ifndef MATRIX_H
 #define MATRIX_H
-#define IDX(x,y) ((y)*g_width+(x))
+#define index(x,y) ((x)+g_width*(y))
 
 #include <stdint.h>
 
-struct scalar_add_struct {
+struct scalar_struct {
     const uint32_t *matrix;
     uint32_t *result;
-    size_t index;
     ssize_t scalar;
+    ssize_t array_start;
     ssize_t array_limit;
 };
 
-struct matrix_mul_struct {
+struct mul_struct {
   const uint32_t *mat_a;
   const uint32_t *mat_b;
   uint32_t *result;
   size_t index;
   size_t chunk;
+  size_t threads;
+  size_t width;
+};
+
+struct cmp_struct {
+  const uint32_t *matrix;
+  uint32_t *result;
+  size_t index;
+  // size_t value;
+  ssize_t array_start;
+  ssize_t array_limit;
 };
 
 /* utility functions */

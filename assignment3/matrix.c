@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <pthread.h>
 #include <inttypes.h>
+#include <string.h>
 #include "matrix.h"
 
 static uint32_t g_seed = 0;
@@ -15,7 +16,7 @@ static ssize_t g_elements = 0;
 
 static ssize_t g_nthreads = 1;
 
-int temp = 0;
+uint32_t temp = 0;
 
 
 ////////////////////////////////
@@ -183,13 +184,11 @@ uint32_t *sequence_matrix(uint32_t start, uint32_t step) {
 /**
  * Returns new matrix with elements cloned from given matrix
  */
-uint32_t *cloned(const uint32_t *matrix) {
+inline uint32_t *cloned(const uint32_t *matrix) {
 
     uint32_t *result = new_matrix();
 
-    for (ssize_t i = 0; i < g_elements; i++) {
-        result[i] = matrix[i];
-    }
+    memcpy(result, matrix, g_elements * sizeof(*result));
 
     return result;
 }
@@ -197,7 +196,7 @@ uint32_t *cloned(const uint32_t *matrix) {
 /**
  * Returns new matrix with elements ordered in reverse
  */
-uint32_t *reversed(const uint32_t *matrix) {
+inline uint32_t *reversed(const uint32_t *matrix) {
 
     uint32_t *result = new_matrix();
 
@@ -217,20 +216,22 @@ uint32_t *transposed(const uint32_t *matrix) {
 
     for (ssize_t y = 0; y < g_height; y++) {
         for (ssize_t x = 0; x < g_width; x++) {
-            result[x * g_width + y] = matrix[y * g_width + x];
+            result[index(y, x)] = matrix[index(x, y)];
         }
     }
 
     return result;
 }
 
-void *scalar_add_worker(void *scalar_add_struct){
+/**
+ * Worker function for scalar add.
+ * Performs scalar addition on each entry using pthreads.
+ */
+void *scalar_add_worker(void *add_struct){
 
-    struct scalar_add_struct m_row = *(struct scalar_add_struct *)scalar_add_struct;//casting
+    struct scalar_struct m_row = *(struct scalar_struct *)add_struct;//casting
 
-    const int start = m_row.index*m_row.array_limit;
-    //e.g. 0 < 16, 8 < 16,
-    for (int i = start; i < g_elements; i++) {
+    for (int i = m_row.array_start; i < m_row.array_limit; i++) {
         m_row.result[i] = m_row.matrix[i]+m_row.scalar;
     }
 
@@ -245,25 +246,24 @@ uint32_t *scalar_add(const uint32_t *matrix, uint32_t scalar) {
 
     uint32_t *result = new_matrix();
 
-    struct scalar_add_struct *m_row = malloc(sizeof(struct scalar_add_struct) * g_nthreads);
-
-
-    int array_limit = g_elements/g_nthreads;
+    //structs allow us to pass more than 1 variable to the worker function
+    struct scalar_struct *m_row = malloc(sizeof(struct scalar_struct) * g_nthreads);
 
     pthread_t t_id[g_nthreads]; // store thread IDs
+
+    int chunk = g_elements/g_nthreads;
 
     for (ssize_t i = 0; i < g_nthreads; i++) {
         m_row[i].matrix      = matrix;
         m_row[i].result      = result;
-        m_row[i].index       = i;
         m_row[i].scalar      = scalar;
-        m_row[i].array_limit = array_limit;
+        m_row[i].array_start = i*chunk;
+        m_row[i].array_limit = (i*chunk) + chunk;
     }
 
     for (ssize_t i = 0; i < g_nthreads; i++) {
         pthread_create(t_id+i, NULL, scalar_add_worker, &m_row[i]);
     }
-
 
     for (ssize_t i = 0; i < g_nthreads; ++i) {
         pthread_join(t_id[i], NULL);
@@ -275,44 +275,95 @@ uint32_t *scalar_add(const uint32_t *matrix, uint32_t scalar) {
 }
 
 /**
+ * Worker function for scalar multiply.
+ * Performs scalar multiplication on each entry using pthreads.
+ */
+void *scalar_mul_worker(void *mult_struct){
+
+    //cast the void struct as a scalar_struct data type
+    struct scalar_struct m_row = *(struct scalar_struct *)mult_struct;
+
+    for (int i = m_row.array_start; i < m_row.array_limit; i++) {
+        m_row.result[i] = m_row.matrix[i]*m_row.scalar;
+    }
+
+    return NULL;
+
+}
+
+/**
  * Returns new matrix with scalar multiplied to each element
  */
 uint32_t *scalar_mul(const uint32_t *matrix, uint32_t scalar) {
 
     uint32_t *result = new_matrix();
 
+    struct scalar_struct *m_row = malloc(sizeof(struct scalar_struct) * g_nthreads);
+
+    pthread_t t_id[g_nthreads]; // store thread IDs
+
+    int chunk = g_elements/g_nthreads;
+
+    for (ssize_t i = 0; i < g_nthreads; i++) {
+        m_row[i].matrix      = matrix;
+        m_row[i].result      = result;
+        m_row[i].scalar      = scalar;
+        m_row[i].array_start = i*chunk;
+        m_row[i].array_limit = (i*chunk) + chunk;
+    }
+
+    for (ssize_t i = 0; i < g_nthreads; i++) {
+        pthread_create(t_id+i, NULL, scalar_mul_worker, &m_row[i]);
+    }
+
+    for (ssize_t i = 0; i < g_nthreads; ++i) {
+        pthread_join(t_id[i], NULL);
+    }
+
+    free(m_row);
+
+    return result;
+
+}
+
+/**
+ * Returns new matrix with elements added at the same index
+ */
+inline uint32_t *matrix_add(const uint32_t *matrix_a, const uint32_t *matrix_b) {
+
+    uint32_t *result = new_matrix();
+
+    int res = 0;
+
     for (ssize_t i = 0; i < g_elements; i++) {
-        result[i] = matrix[i] * scalar;
+
+        res       = matrix_a[i] + matrix_b[i];
+        result[i] = res;
     }
 
     return result;
 }
 
 /**
- * Returns new matrix with elements added at the same index
+ * Worker function for scalar multiply.
+ * Performs scalar multiplication on each entry using pthreads.
  */
-uint32_t *matrix_add(const uint32_t *matrix_a, const uint32_t *matrix_b) {
-
-    uint32_t *result = new_matrix();
-
-    for (ssize_t i = 0; i < g_elements; i++) {
-        result[i] = matrix_a[i] + matrix_b[i];
-    }
-
-    return result;
-}
-
-static void *worker_matrix_mul(void *matrix){
-    struct matrix_mul_struct res_mat = *(struct matrix_mul_struct *)matrix;
+inline static void *worker_matrix_mul(void *mult_matrix){
+    struct mul_struct res_mat = *(struct mul_struct *)mult_matrix;
 
     const size_t start = res_mat.index * res_mat.chunk;
-    const size_t end   = res_mat.index == g_nthreads - 1 ? g_width : (res_mat.index + 1)*res_mat.chunk;
+    //if index == threads-1 then end is equal to width, otherwise equal to (index+1)*chunk
+    const size_t end = res_mat.index == res_mat.threads - 1 ? res_mat.width : (res_mat.index + 1)*res_mat.chunk;
 
+    int res = 0;
 
+    //performs matrix multiplicaton on two matrices and assigns to result
     for (size_t i = start; i < end; ++i) {
-        for (size_t j = 0; j < g_width; j++) {
-            for (size_t k = 0; k < g_width; k++) {
-                res_mat.result[IDX(j, i)] += res_mat.mat_a[IDX(k, i)]*res_mat.mat_b[IDX(j, k)];
+        for (size_t j = 0; j < res_mat.width; j++) {
+            res = 0;
+            for (size_t k = 0; k < res_mat.width; k++) {
+                res                        += res_mat.mat_a[index(k, i)]*res_mat.mat_b[index(j, k)];
+                res_mat.result[index(j, i)] = res;
             }
         }
     }
@@ -323,27 +374,32 @@ static void *worker_matrix_mul(void *matrix){
  * Returns new matrix, multiplying the two matrices together
  */
 uint32_t *matrix_mul(const uint32_t *matrix_a, const uint32_t *matrix_b) {
+    int width   = g_width; //local
+    int threads = g_nthreads;
 
-    struct matrix_mul_struct *res_mat = malloc(sizeof(struct matrix_mul_struct)*g_nthreads);
+    struct mul_struct *res_mat = malloc(sizeof(struct mul_struct)*threads);
 
     uint32_t *result = new_matrix();
 
-    for (size_t i = 0; i < g_nthreads; ++i) {
-        res_mat[i] = (struct matrix_mul_struct){
-            .mat_a  = matrix_a,
-            .mat_b  = matrix_b,
-            .result = result,
-            .index  = i,
-            .chunk  = g_width/g_nthreads,
+    for (size_t i = 0; i < threads; ++i) {
+        res_mat[i] = (struct mul_struct){
+            .mat_a   = matrix_a,
+            .mat_b   = matrix_b,
+            .result  = result, //operates on what result points to
+            .index   = i,
+            .chunk   = width/threads, //do this at the start of this function
+            .width   = width,
+            .threads = threads,
         };
     }
 
-    pthread_t t_id[g_nthreads]; //creating array to store thread IDs
+    pthread_t t_id[threads]; //creating array to store thread IDs
 
-    for (size_t i = 0; i < g_nthreads; ++i) {
-        //passing thread id + i, no attributes, function pointer, matrix struct
+    for (size_t i = 0; i < threads; ++i) {
+        // create p_threads
         pthread_create(t_id + i, NULL, worker_matrix_mul, res_mat + i);
     }
+
 
     for (size_t i = 0; i < g_nthreads; ++i) {
         pthread_join(t_id[i], NULL);
@@ -359,31 +415,38 @@ uint32_t *matrix_mul(const uint32_t *matrix_a, const uint32_t *matrix_b) {
  */
 uint32_t *matrix_pow(const uint32_t *matrix, uint32_t exponent) {
 
+    if (exponent == 0) {
+        uint32_t *result = identity_matrix();
+        return result;
+    }
+
     uint32_t *result = new_matrix();
 
-    if (exponent == 0) {
-        return result = identity_matrix();
-    }
+    memcpy(result, matrix, g_elements * sizeof(*result));
 
-    for (int i = 0; i < g_elements; i++) {
-        result[i] = matrix[i];
-    }
-
-
+    // return if A^1
     if (exponent == 1) {
         return result;
     }
 
-    if (exponent == 2) {
-        return result = matrix_mul(matrix, matrix);
+    int floor_exp = exponent;
+
+    if (floor_exp % 2 != 0) {
+        floor_exp = (floor_exp-1) >> 1;
+    } else {
+        floor_exp = floor_exp >> 1;
     }
 
-    for (int i = 0; i < exponent-1; i++) { //-1 because ^1 is itself
+    for (int i = 0; i < floor_exp-1; i++) { //-1 because A^1 is itself
         result = matrix_mul(result, matrix);
     }
 
-
-    return result;
+    if (exponent % 2 == 0) {
+        return result = matrix_mul(result, result);
+    } else {
+        result = matrix_mul(result, result);
+        return matrix_mul(result, matrix);
+    }
 
 
 }
@@ -411,31 +474,89 @@ uint32_t get_sum(const uint32_t *matrix) {
  */
 uint32_t get_trace(const uint32_t *matrix) {
 
-    uint32_t trace = 0;
+    temp = 0;
 
     for (int i = 0; i < g_height; i++) {
-        trace += matrix[i*g_width+i];  //row we're at + i places in
-    }
-
-    return trace;
-}
-
-/**
- * Returns the smallest value in the matrix
- */
-uint32_t get_minimum(const uint32_t *matrix) {
-
-    temp = matrix[0];
-
-    for (int i = 1; i < g_elements; i++) {
-        if (matrix[i] < temp) {
-            temp = matrix[i];
-        }
-
+        temp += matrix[i*g_width+i];  //row we're at + i places in
     }
 
     return temp;
+}
 
+/**
+ * Worker function for finding min.
+ */
+void *min_worker(void *cmp_struct){
+
+    struct cmp_struct cmp_mat = *(struct cmp_struct *)cmp_struct; //casting
+    //initial min
+    cmp_mat.result[cmp_mat.index] = cmp_mat.matrix[0];
+
+    for (int i = cmp_mat.array_start; i < cmp_mat.array_limit; i++) {
+        if (cmp_mat.matrix[i] < cmp_mat.result[cmp_mat.index]) {
+            cmp_mat.result[cmp_mat.index] = cmp_mat.matrix[i];
+        }
+    }
+    return NULL;
+
+}
+
+/**
+ * Returns the largest value in the matrix
+ */
+uint32_t get_minimum(const uint32_t *matrix) {
+    struct cmp_struct *cmp_mat = malloc(sizeof(struct cmp_struct)*g_nthreads);
+    uint32_t          *result  = new_matrix();
+
+    int chunk = g_elements/g_nthreads;
+
+    for (size_t i = 0; i < g_nthreads; ++i) {
+        cmp_mat[i] = (struct cmp_struct){
+            .matrix      = matrix,
+            .result      = result,
+            .index       = i,
+            .array_start = i * chunk,
+            .array_limit = (i * chunk)+chunk,
+        };
+    }
+
+    pthread_t t_id[g_nthreads]; //creating array to store thread IDs
+
+    for (size_t i = 0; i < g_nthreads; ++i) {
+
+        pthread_create(t_id + i, NULL, min_worker, cmp_mat + i);
+    }
+
+    for (size_t i = 0; i < g_nthreads; ++i) {
+        pthread_join(t_id[i], NULL);
+    }
+
+    int min = cmp_mat->result[0];
+
+    for (size_t i = 0; i < g_nthreads; ++i) {
+        if (cmp_mat->result[i] < min) {
+            min = cmp_mat->result[i];
+        }
+    }
+
+    free(cmp_mat);
+    return min;
+
+}
+
+/**
+ * Worker function for finding max.
+ */
+void *max_worker(void *cmp_struct){
+
+    struct cmp_struct cmp_mat = *(struct cmp_struct *)cmp_struct;//casting
+
+    for (int i = cmp_mat.array_start; i < cmp_mat.array_limit; i++) {
+        if (cmp_mat.matrix[i] > cmp_mat.result[cmp_mat.index]) {
+            cmp_mat.result[cmp_mat.index] = cmp_mat.matrix[i];
+        }
+    }
+    return NULL;
 
 }
 
@@ -443,31 +564,56 @@ uint32_t get_minimum(const uint32_t *matrix) {
  * Returns the largest value in the matrix
  */
 uint32_t get_maximum(const uint32_t *matrix) {
+    struct cmp_struct *cmp_mat = malloc(sizeof(struct cmp_struct)*g_nthreads);
+    uint32_t          *result  = new_matrix();
 
-    temp = 0;
+    int max   = 0;
+    int chunk = g_elements/g_nthreads;
 
-    for (int i = 0; i < g_elements; i++) {
-        if (matrix[i] > temp) {
-            temp = matrix[i];
-        }
-
+    for (size_t i = 0; i < g_nthreads; ++i) {
+        cmp_mat[i] = (struct cmp_struct){
+            .matrix      = matrix,
+            .result      = result,
+            .index       = i,
+            .array_start = i*chunk,
+            .array_limit = (i*chunk)+chunk,
+        };
     }
 
-    return temp;
+    pthread_t t_id[g_nthreads]; //creating array to store thread IDs
+
+    for (size_t i = 0; i < g_nthreads; ++i) {
+
+        pthread_create(t_id + i, NULL, max_worker, cmp_mat + i);
+    }
+
+    for (size_t i = 0; i < g_nthreads; ++i) {
+        pthread_join(t_id[i], NULL);
+    }
+
+    for (size_t i = 0; i < g_nthreads; ++i) {
+        if (cmp_mat->result[i] > max) {
+            max = cmp_mat->result[i];
+        }
+    }
+
+    free(cmp_mat);
+    return max;
+
 }
 
 /**
  * Returns the frequency of the value in the matrix
  */
-uint32_t get_frequency(const uint32_t *matrix, uint32_t value) {
+inline uint32_t get_frequency(const uint32_t *matrix, uint32_t value) {
 
-    uint32_t count = 0;
+    temp = 0;
 
     for (int i = 0; i < g_elements; i++) {
         if (matrix[i] == value) {
-            count++;
+            temp++;
         }
     }
 
-    return count;
+    return temp;
 }

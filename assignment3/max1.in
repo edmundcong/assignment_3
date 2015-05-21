@@ -1,0 +1,21 @@
+SET a = identity
+SET b = random 1
+SET c = random 2
+SET d = uniform 1
+SET e = uniform 2
+SET f = sequence 1 1
+SET g = sequence 2 2
+SHOW a
+COMPUTE maximum a
+SHOW b
+COMPUTE maximum b
+SHOW c
+COMPUTE maximum c
+SHOW d
+COMPUTE maximum d
+SHOW e
+COMPUTE maximum e
+SHOW f
+COMPUTE maximum f
+SHOW g
+COMPUTE maximum g

@@ -1,0 +1,28 @@
+SET a = identity
+SET b = random 1
+SET c = random 2
+SET d = uniform 1
+SET e = uniform 2
+SET f = sequence 1 1
+SET g = sequence 2 2
+SHOW a
+COMPUTE frequency a 0
+COMPUTE frequency a 2
+SHOW b
+COMPUTE frequency b 0
+COMPUTE frequency b 2
+SHOW c
+COMPUTE frequency c 0
+COMPUTE frequency c 2
+SHOW d
+COMPUTE frequency d 0
+COMPUTE frequency d 2
+SHOW e
+COMPUTE frequency e 0
+COMPUTE frequency e 2
+SHOW f
+COMPUTE frequency f 0
+COMPUTE frequency f 2
+SHOW g
+COMPUTE frequency g 0
+COMPUTE frequency g 2
